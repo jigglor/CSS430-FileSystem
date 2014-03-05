@@ -1,10 +1,49 @@
 /* Joseph Schooley & Nguyen Tong, CSS 430, Professor Sung
    CSS430 Final Project - File System
    SysLib Class
+   Implement 8 SysLib functions calls so that Kernel will
+   acts on File System as specified
 */
 import java.util.*;
 
 public class SysLib {
+
+/////////////////8 SysLib File System functions////////////////////
+   
+    public static int format(int files) {
+    
+    }
+    
+    public static int open(String fileName, String mode) {
+    
+    }
+    
+    public static int read(int fd, byte, buffer[]) {
+    
+    }
+    
+    public static int write(int fd, byte buffer[]) {
+    
+    }
+    
+    public static int seek(int fd, int offset, int whence)  {
+    
+    }
+    
+    public static int close(int fd) {
+    
+    }
+    
+    public static int delete(String fileName) {
+    
+    }
+    
+    public static int fsize(int fd) {
+    
+    }
+
+/////////////////////////////////////////////////////////////////////
+
     public static int exec( String args[] ) {
         return Kernel.interrupt( Kernel.INTERRUPT_SOFTWARE,
 				 Kernel.EXEC, 0, args );
