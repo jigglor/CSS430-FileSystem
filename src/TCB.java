@@ -1,6 +1,8 @@
 /* Joseph Schooley & Nguyen Tong, CSS 430, Professor Sung
    CSS430 Final Project - File System
    TCB Class
+   This class keep track of an array FileTableEntry of each user thread and
+   file system activities that each thread perform. 
  */
 public class TCB {
 	private Thread thread = null;
@@ -20,6 +22,8 @@ public class TCB {
 		terminated = false;
 
 		fte = new FileTableEntry[32];
+		
+		//making sure the array is empty and pointing to null
 		for (int i = 0; i < 32; i++)
 			fte[i] = null;
 		// fd[0], [1], [2] are kept null for input, output, err
@@ -62,9 +66,13 @@ public class TCB {
 		return -1;
 	}
 
-	// added for the file system
+	/* returnFd
+	
+	*/
 	public synchronized FileTableEntry returnFd(int fd) {
+		//check for requested entry
 		if (fd >= 3 && fd < 32) {
+			//if found, return the FTE and set pointer to null
 			FileTableEntry oldEnt = fte[fd];
 			fte[fd] = null;
 			return oldEnt;
@@ -72,8 +80,11 @@ public class TCB {
 			return null;
 	}
 
-	// added for the file systme
+	/*getFte
+	
+	*/
 	public synchronized FileTableEntry getFte(int fd) {
+		//get the FTE 
 		if (fd >= 3 && fd < 32)
 			return fte[fd];
 		else
