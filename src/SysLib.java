@@ -20,19 +20,21 @@ public class SysLib {
 				stringToArgs(fileName + " " + mode));
 	}
 
-	public static int read(int fd, byte buffer[]) {
+	public static int read(int fd, byte[] buffer) {
 		return Kernel.interrupt(Kernel.INTERRUPT_SOFTWARE, Kernel.READ, fd,
 				buffer);
 	}
 
-	public static int write(int fd, byte buffer[]) {
+	public static int write(int fd, byte[] buffer) {
 		return Kernel.interrupt(Kernel.INTERRUPT_SOFTWARE, Kernel.WRITE, fd,
 				buffer);
 	}
 
 	public static int seek(int fd, int offset, int whence) {
+		int[] arguments = {offset, whence};
+		
 		return Kernel.interrupt(Kernel.INTERRUPT_SOFTWARE, Kernel.SEEK, fd,
-				stringToArgs(offset + " " + whence));
+				arguments);
 	}
 
 	public static int close(int fd) {
