@@ -15,6 +15,33 @@ public class FileTable {
 	} // from the file system
 
 	
+	// falloc from slides
+	/*public synchronized FileTableEntry falloc(String fname, String mode) {
+		short iNumber = -1;
+		Inode inode = null;
+		while (true) {
+			iNumber = fname.equals("/") ? 0 : dir.namei(fname);
+			if (iNumber >= 0)
+				inode = new Inode(iNumber);
+			if (mode.compareTo("r")) {
+				if (inode.flag is "read") break; // no need to wait
+				else if (inode.flag is "write") // wait for a write to exit
+					try { wait(); } catch (InterruptedException e) {}
+				else if (inode.flag is "to be deleted") {
+					iNumber = -1; // no more open
+					return null;
+				}
+			} else if (mode.compareTo("w")) {
+				// ...
+			}
+		}
+		inode.count++;
+		inode.toDisk(iNumber);
+		FileTableEntry e = new FileTableEntry(inode, iNumber, mode);
+		table.addElement(e); // create a table entry and register it.
+		return e;
+	}*/
+	
 	public synchronized FileTableEntry falloc(String fileName, String mode) {
 		Inode iNode;
 		short iNumber;

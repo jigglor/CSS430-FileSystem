@@ -7,8 +7,8 @@ public class Directory {
 	private static int maxChars = 30; // max characters of each file name
 
 	// Directory entries
-	private int fsizes[]; // each element stores a different file size.
-	private char fnames[][]; // each element stores a different file name.
+	private int fsizes[]; // each element stores a different file size (file name's length)
+	private char fnames[][]; // each element stores a different file name
 
 	public Directory(int maxInumber) { // directory constructor
 		String root = "/"; // entry(inode) 0 is "/"
@@ -21,8 +21,15 @@ public class Directory {
 		root.getChars(0, fsizes[0], fnames[0], 0); // fnames[0] includes "/"
 	}
 
-	public int bytes2directory(byte data[]) {
-		return 0;
+	public void bytes2directory(byte data[]) {
+		int offset = 0;
+		for (int i = 0; i < fsizes.length; i++, offset += 4) {
+			fsizes[i] = SysLib.bytes2int(data, offset);
+		}
+		for (int i = 0; i < fnames.length; i++, offset += maxChars * 2) {
+			String fname = new String(data, offset, maxChars *2);
+			fname.getChars(0, fsizes[i], fnames[i], 0);
+		}
 		// assumes data[] received directory information from disk
 		// initializes the Directory instance with this data[]
 	}
@@ -35,18 +42,21 @@ public class Directory {
 		// into bytes.
 	}
 
+	// returns 1, given "f1"
 	public short ialloc(String fileName) {
 		return 0;
 		// filename is the one of a file to be created.
 		// allocates a new inode number for this filename
 	}
 
+	// returns true, given 1
 	public boolean ifree(short iNumber) {
 		return false;
 		// deallocates this inumber (inode number)
 		// the corresponding file will be deleted.
 	}
 
+	// returns 0, given "/"
 	public short namei(String fileName) {
 		// return 0 for root
 		if (fileName == "/") return 0;
