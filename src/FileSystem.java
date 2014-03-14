@@ -50,49 +50,55 @@ public class FileSystem {
 	}
 	
 
-	public boolean format(int param) {
-		return false;
+	public boolean format(int files) {
+		// file table contents must be closed
+		if (!filetable.fempty()) {
+			// TODO: omit or wait with while loop if this causes errors
+			SysLib.cerr("Cannot format superblock while file are in use.");
+			return false;
+		}
+		superblock.format(files);
+		directory = new Directory(superblock.totalInodes);
+		filetable = new FileTable(directory);
+		return true;
 	}
 
-	//  The seek pointer is initialized to zero in the mode "r", "w", and "w+", whereas initialized at the end of the file in the mode "a".?
 	public FileTableEntry open (String filename, String mode) {
-		FileTableEntry fte = filetable.falloc(filename, mode);
-		int EOF = seek(fte, 0, SEEK_END); // end of file
-		int seekPtr = fte.seekPtr;
-		fte.count++;
-		switch (fte.mode) {
-			case FileTableEntry.READONLY:
-				break;
-			case FileTableEntry.WRITEONLY:
-				// delete all blocks
-				if (deallocateBlocks(fte) == false) {
-					SysLib.cerr("Could not deallocate all blocks.");
-					return null;
-				}
-				// write from scratch
-				break;
-			case FileTableEntry.READWRITE:
-				// keep all blocks
-				if (seekPtr < EOF) { // if seek pointer is within EOF
-					// corresponding bytes should be updated
-					break;
-				}
-				// if seek pinter is at EOF, it behaves like APPEND
-			case FileTableEntry.APPEND:
-				// keep all blocks
-				// set seek pointer to EOF
-				seekPtr = EOF;
-				// append new blocks
-				break;
+		FileTableEntry fte;
+		Inode iNode;
+		// must provide valid filename and mode
+		if (filename == "" || mode == "")
+			return null;
+		// if file table entry is null
+		if ((fte = filetable.falloc(filename, mode)) == null ||
+			fte.mode == -1 || // or mode is invalid
+			(iNode = fte.iNode) == null || // or iNode is null
+			iNode.flag == Inode.DELETE) { // or iNode flag is 'to be deleted'
+			filetable.ffree(fte); // relieve entry from memory
+			return null;
+		}
+		if (fte.mode == FileTableEntry.WRITEONLY &&
+			// if mode is "w" delete all blocks and write from scratch
+			!deallocateBlocks(fte)) {
+			// on failure, relieve entry from memory
+			filetable.ffree(fte);
+			SysLib.cerr("Could not deallocate all blocks.");
+			return null;
 		}
 		return fte;
 	}
 
 
-	// Commits all file transactions on this file, and unregisters fd from the user file descriptor table of the calling thread's TCB. Returns success.
+	// Commits all file transactions on this file,
+	// and unregisters fd from the user file descriptor table
+	// of the calling thread's TCB. Returns success.
 	public boolean close(FileTableEntry fte) {
-		fte.count--;
-		return false;
+		Inode iNode;
+		if (fte == null) return false;
+		if ((iNode = fte.iNode) == null) return false;
+		while (!filetable.ffree(fte));
+		iNode.toDisk(fte.iNumber);
+		return true;
 	}
 
 	// return size in bytes
@@ -107,24 +113,111 @@ public class FileSystem {
 	}
 
 	public int read(FileTableEntry fte, byte[] buffer) {
+		int seekPtr, length, EOF, block, start;
+		Inode iNode;
+		byte[] data;
+		// file table entry cannot be null
+		if (fte == null) return ERROR;
+		// mode must be read only
+		if (fte.mode != FileTableEntry.READONLY) return ERROR;
+		// iNode cannot be null
+		if ((iNode = fte.iNode) == null) return ERROR;
 		// start at position pointed to by inode's seek pointer
-		int seekPtr = fte.seekPtr;
-		Inode iNode = fte.iNode;
-		int length = buffer.length;
+		start = seekPtr = fte.seekPtr;
 		// read up to buffer length
-		// if bytes remaining between seek pointer and the end of the file are less than buffer.length,
-		return ERROR;
-
+		length = buffer.length;
+		// length must be less than the end of the file
+		if (length > (EOF = fsize(fte))) length = EOF;
+		// multiple threads cannot read at the same time
+		synchronized (fte) {
+			// TODO: check if iterator is sufficient
+			for (int i = 0; seekPtr < length; seekPtr += i) {
+				// block must exist
+				if ((block = iNode.findTargetBlock(seekPtr)) == ERROR)
+					return ERROR;
+				data = new byte[Disk.blockSize];
+				// read block into data
+				SysLib.rawread(block, data);
+				// advance to next block data
+				i = seekPtr % Disk.blockSize;
+				// copy data to buffer
+				System.arraycopy(data, fte.seekPtr % Disk.blockSize, buffer, seekPtr, i);
+			}
+			// set new seek pointer
+			fte.seekPtr = seekPtr;
+		}
+		return seekPtr - start;
 	}
 
 	public int write(FileTableEntry fte, byte[] buffer) {
-		int seekPtr, length;
+		int seekPtr, length, EOF, start;
+		short block;
 		Inode iNode;
+		byte[] data;
+		// file table entry cannot be null
 		if (fte == null) return ERROR;
-		seekPtr = fte.seekPtr;
-		iNode = fte.iNode;
+		// mode cannot be read only
+		if (fte.mode == FileTableEntry.READONLY) return ERROR;
+		// iNode cannot be null
+		if ((iNode = fte.iNode) == null) return ERROR;
+		// start at position pointed to by inode's seek pointer
+		start = seekPtr = fte.seekPtr;
+		// write up to buffer length
 		length = buffer.length;
-		return ERROR;
+		// length must be less than the end of the file
+		if (length > (EOF = fsize(fte))) length = EOF;
+		// multiple threads cannot read at the same time
+		synchronized (fte) {
+			// TODO: check if iterator is sufficient
+			for (int i = 0; seekPtr < length; seekPtr += i) {
+				/* Attempted shorthand at ERROR checking below...
+				// if block does not exist
+				if ((block = iNode.findTargetBlock(seekPtr)) == ERROR &&
+						// try to get free block
+						((block = superblock.getFreeBlock()) == ERROR ||
+						// allocate free block
+						 iNode.setTargetBlock(seekPtr, block) == ERROR ||
+						 // try to allocate indirect block
+						 iNode.setIndexBlock(block) == false ||
+						 // try to get free block
+						 (block = superblock.getFreeBlock()) == ERROR ||
+						 // try to allocate free block
+						 iNode.setTargetBlock(seekPtr, block) == ERROR))
+					return ERROR; // return ERROR on any failure
+					*/
+				// if block does not exist...
+				if ((block = iNode.findTargetBlock(seekPtr)) == ERROR) {
+					// ...we need to allocate one
+					if ((block = superblock.getFreeBlock()) == ERROR)
+						return ERROR; // out of memory
+					// try to allocate block
+					if (iNode.setTargetBlock(seekPtr, block) == ERROR) {
+						// failure. try to allocate indirect block
+						if (iNode.setIndexBlock(block) == false)
+							return ERROR; // could not allocate indirect block
+						// try to find a block again
+						if ((block = superblock.getFreeBlock()) == ERROR)
+							return ERROR; // nope. "I just can't do it captain!"
+						if (iNode.setTargetBlock(seekPtr, block) == ERROR)
+							return ERROR; // last allocation attempt failed
+					}
+				}
+				data = new byte[Disk.blockSize];
+				SysLib.rawread(block, data);
+				// advance to next block data
+				i = seekPtr % Disk.blockSize;
+				// copy data to buffer
+				System.arraycopy(data, fte.seekPtr % Disk.blockSize, buffer, seekPtr, i);
+				// write data to disk
+				SysLib.rawwrite(block, data);
+			}
+			// set new seek pointer
+			fte.seekPtr = seekPtr;
+			
+			// save iNode to disk
+			iNode.toDisk(fte.iNumber);
+		}
+		return seekPtr - start;
 	}
 
 

@@ -96,7 +96,7 @@ public class Inode {
 		return indirect;
 	}
 
-	public boolean setIndexBlock(short indexBlockNumber) {
+	public boolean setIndexBlock(short block) {
 		byte[] data;
 		
 		if (indirect != -1)
@@ -108,13 +108,13 @@ public class Inode {
 				return false;
 
 		// set indirect pointer to the first block index
-		indirect = indexBlockNumber;
+		indirect = block;
 
 		data = new byte[Disk.blockSize];
 		for (int i = 0, l = Disk.blockSize/2; i < l; i += 2)
 			SysLib.short2bytes((short) -1, data, i);
 
-		SysLib.rawwrite(indexBlockNumber, data);
+		SysLib.rawwrite(block, data);
 		return true;
 	}
 

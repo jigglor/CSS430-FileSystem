@@ -29,7 +29,9 @@ public class SuperBlock {
 		freeList = SysLib.bytes2int(block, 8);
 		
 		// success case
-		if (totalBlocks == diskSize && totalInodes > 0 && freeList >= 2) {
+		if (totalBlocks == diskSize &&
+			totalInodes > 0 &&
+			freeList >= 2) {
 			return;
 		} else {
 			format(defaultInodeBlocks);
@@ -41,9 +43,9 @@ public class SuperBlock {
 	  format number (inodeNo). For example, 32 will yield 2 blocks
 	  of Inodes. 
 	*/
-	private void format(int inodeNo) {
+	public void format(int iNodes) {
 		totalBlocks = Disk.blockSize;
-		totalInodes = inodeNo;    
+		totalInodes = iNodes;    
 		
 		for (int i = 0; i < totalInodes; i++) {
 			Inode newInode = new Inode();
@@ -88,14 +90,14 @@ public class SuperBlock {
 	/*getFreeBlock()
 	// Dequeue the top block from the free list
 	*/
-	public int getFreeBlock() {
-		int freeBlock;
+	public short getFreeBlock() {
+		short freeBlock;
 		byte[] block;
 		
 		// return -1 if there are no more free blocks
 		if (freeList < 0 || freeList > totalBlocks) return -1;
 		// free block is given from free list
-		freeBlock = freeList;
+		freeBlock = (short) freeList;
 		//create new empty block
 		block = new byte[Disk.blockSize];
 		//get the content of the freeList block

@@ -27,13 +27,13 @@ public class FileTableEntry {
 	}
 	
 
-	public static int getMode(String mode) {
+	public static short getMode(String mode) {
 		switch (mode.toLowerCase()) {
 			case "r" :
 				return	READONLY;
 			case "w" :
 				return	WRITEONLY;
-			case "rw" :
+			case "w+" :
 				return	READWRITE;
 			case "a" :
 				return	APPEND;

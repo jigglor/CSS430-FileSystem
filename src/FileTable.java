@@ -15,49 +15,36 @@ public class FileTable {
 	}
 
 	
-	public synchronized FileTableEntry falloc(String fname, String mode) {
-		int m = FileTableEntry.getMode(mode);
+	public synchronized FileTableEntry falloc(String fname, String m) {
+		short mode = FileTableEntry.getMode(m);
 		short iNumber = -1;
 		Inode iNode = null;
 		FileTableEntry fte;
 		// if mode is invalid, return null
-		if (m == -1) return null;
+		if (mode == -1) return null;
 		while (true) {
 			// allocate / retrieve and register the corresponding inode using dir
 			iNumber = fname.equals("/") ? 0 : dir.namei(fname);
 			if (iNumber < 0) {	// file does not exist
-				if (m == FileTableEntry.READONLY)	// do not allocate file if read only
+				if (mode == FileTableEntry.READONLY)	// do not allocate file if read only
 					return null;
 				// allocate Inode with default constructors
-				iNumber = dir.ialloc(fname);
+				if ((iNumber = dir.ialloc(fname)) < 0)
+					return null; // or not
 				iNode = new Inode();
-			} else {
-				iNode = new Inode(iNumber);
-				if (iNode.flag == Inode.DELETE) {
-					iNumber = -1; // to be deleted
-					return null; // no more to open
-				}
-				if (m == FileTableEntry.READONLY) { // mode is "r"
-					if (iNode.flag == Inode.READ) {
-						break; // no need to wait
-					} else if (iNode.flag == Inode.WRITE) { // wait for a write to exit
-						try {
-							wait();
-						} catch (InterruptedException e) {}
-					}
-				} else { // mode is "w" "w+" "rw" or "a"
-					// TODO: not sure if this should be for ALL modes
-					if (iNode.flag == Inode.UNUSED || iNode.flag == Inode.USED) {
-						// iNode is good
-						iNode.flag = Inode.WRITE; // set flag to write
-						break;
-					} else if (iNode.flag == Inode.READ || iNode.flag == Inode.WRITE) { // wait for a read/write to exit
-						try {
-							wait();
-						} catch (InterruptedException e) {}
-					}
-				}
+				break;
 			}
+			iNode = new Inode(iNumber);
+			if (iNode.flag == Inode.DELETE) return null; // no more to open
+			if (iNode.flag == Inode.UNUSED || iNode.flag == Inode.USED)
+				break; 	// no need to wait for anything
+			// flags left include read and write
+			if (mode == FileTableEntry.READONLY && // mode is "r"
+					iNode.flag == Inode.READ) break; // no need to wait on READ
+			// if the flag is WRITE for "r", or READ or WRITE for "w" "w+" or "a" we wait in all cases
+			try {
+				wait();
+			} catch (InterruptedException e) {}
 		}
 
 		// increment this iNode's count
@@ -67,7 +54,7 @@ public class FileTable {
 		iNode.toDisk(iNumber);
 
 		// allocate new file table entry for this file name
-		fte = new FileTableEntry(iNode, iNumber, mode);
+		fte = new FileTableEntry(iNode, iNumber, m);
 
 		// add FTE to table
 		table.add(fte);
