@@ -54,7 +54,7 @@ public class FileSystem {
 		// file table contents must be closed
 		if (!filetable.fempty()) {
 			// TODO: omit or wait with while loop if this causes errors
-			SysLib.cerr("Cannot format superblock while file are in use.");
+			Kernel.report("Cannot format superblock while file are in use");
 			return false;
 		}
 		superblock.format(files);
@@ -82,7 +82,7 @@ public class FileSystem {
 			!deallocateBlocks(fte)) {
 			// on failure, relieve entry from memory
 			filetable.ffree(fte);
-			SysLib.cerr("Could not deallocate all blocks.");
+			Kernel.report("Could not deallocate all blocks");
 			return null;
 		}
 		return fte;

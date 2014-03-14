@@ -59,13 +59,13 @@ public class Kernel {
 	// Error reporting
 	private final static String ERR_SR = "caused read errors";
 	private final static String ERR_SW = "cannot write to System.in";
-	private final static String ERR_DR = "Disk read failed!?";
-	private final static String ERR_DW = "Disk write failed!?";
-	private final static String ERR_DS = "Disk sync failed!?";
+	private final static String ERR_DR = "DISK read failed";
+	private final static String ERR_DW = "DISK write failed";
+	private final static String ERR_DS = "DISK sync failed";
 
-	// In case SysLib is modified / fails
-	private static void report(String err) {
-		System.out.println("ThreadOS: " + err);
+	// threadOS errors and status
+	public static void report(String msg) {
+		System.err.println("threadOS: " + msg);
 	}
 
 	// The heart of Kernel
@@ -186,8 +186,10 @@ public class Kernel {
 								report(ERR_SW);
 								return ERROR;
 							case STDOUT :
+								System.out.print(args);
+								return OK;
 							case STDERR :
-								report((String) args);
+								System.err.print(args);
 								return OK;
 						}
 						if ((myTcb = scheduler.getMyTcb()) == null)

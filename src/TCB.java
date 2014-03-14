@@ -28,8 +28,8 @@ public class TCB {
 			ftEnt[i] = null;
 		// fd[0], [1], [2] are kept null for input, output, err
 
-		System.err.println("threadOS: a new thread (thread=" + thread + " tid="
-				+ tid + " pid=" + pid + ")");
+		Kernel.report("a new thread (thread=" + thread + " tid=" + tid + " pid="
+				+ pid + ")");
 	}
 
 	public synchronized Thread getThread() {

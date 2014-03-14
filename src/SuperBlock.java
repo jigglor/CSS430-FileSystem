@@ -44,6 +44,8 @@ public class SuperBlock {
 	  of Inodes. 
 	*/
 	public void format(int iNodes) {
+		Kernel.report((iNodes == defaultInodeBlocks ? "default " : "") + "format( " + iNodes + " )");
+		
 		totalBlocks = Disk.blockSize;
 		totalInodes = iNodes;    
 		
@@ -84,7 +86,7 @@ public class SuperBlock {
 		SysLib.int2bytes(totalInodes, block, 4);
 		SysLib.int2bytes(totalInodes, block, 8);
 		SysLib.rawwrite(0, block);
-		SysLib.cout("Superblock synchronized");
+		Kernel.report("Superblock synchronized");
 	}
 	
 	/*getFreeBlock()
