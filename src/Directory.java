@@ -50,7 +50,7 @@ public class Directory {
 	}
 
 	// returns true, given 1
-	public boolean ifree(short iNumber) {
+	public boolean ifree(int iNumber) {
 		return false;
 		// deallocates this inumber (inode number)
 		// the corresponding file will be deleted.

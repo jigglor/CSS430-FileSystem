@@ -111,8 +111,8 @@ public class Inode {
 		indirect = indexBlockNumber;
 
 		data = new byte[Disk.blockSize];
-		for (int i = 0, l = data.length/2; i < l; i++)
-			SysLib.short2bytes((short) -1, data, i * 2);
+		for (int i = 0, l = Disk.blockSize/2; i < l; i += 2)
+			SysLib.short2bytes((short) -1, data, i);
 
 		SysLib.rawwrite(indexBlockNumber, data);
 		return true;
@@ -123,15 +123,14 @@ public class Inode {
 		return ERROR;
 	}
 
-	public int setTargetBlock(int iNumber, short freeBlock) {
+	public int setTargetBlock(int iNumber, int freeBlock) {
 		return OK;
 	}
 
 	public byte[] deleteIndexBlock() {
 		byte[] data;
 		// nothing to delete
-		if (indirect < 0) return null;
-		
+		if (indirect == ERROR) return null;
 		data = new byte[Disk.blockSize];
 		SysLib.rawread(indirect, data);
 		// indicate deletion

@@ -15,29 +15,38 @@ public class FileSystem {
 	public final int SEEK_CUR = 1;
 	public final int SEEK_END  = 2;
 
-	public FileSystem() {
-
-	}
-
 	public FileSystem(int blocks) {
+		byte[] dirData;
+		
 		superblock = new SuperBlock(blocks);
 		directory = new Directory(superblock.totalInodes);
 		filetable = new FileTable(directory);
-
 		// read the "/" file from disk
 		FileTableEntry dirEnt = open("/", "r");
 		int dirSize = fsize(dirEnt);
 		if (dirSize > 0) {
 			// the directory has some data
-			byte[] dirData = new byte[dirSize];
+			dirData = new byte[dirSize];
 			read(dirEnt, dirData);
 			directory.bytes2directory(dirData);
 		}
 		close(dirEnt);
 	}
 
+	
 	public void sync() {
-
+		// write the "/" file from disk
+		FileTableEntry dirEnt = open("/", "w");
+		
+		// get directory data in bytes
+		byte[] dirData = directory.directory2bytes();
+		
+		// write the file table entry
+		write(dirEnt, dirData);
+		close(dirEnt);
+		
+		// tell super block to write to the disk
+		superblock.sync();
 	}
 	
 
@@ -88,7 +97,13 @@ public class FileSystem {
 
 	// return size in bytes
 	public int fsize(FileTableEntry fte) {
-		return ERROR;
+		Inode iNode;
+		// return -1 if fte is null
+		if (fte == null) return ERROR;
+		// return -1 if iNode is null
+		if ((iNode = fte.iNode) == null) return ERROR;
+		// return iNode.length (already in bytes, no need for conversion)
+		return iNode.length;
 	}
 
 	public int read(FileTableEntry fte, byte[] buffer) {
@@ -103,23 +118,33 @@ public class FileSystem {
 	}
 
 	public int write(FileTableEntry fte, byte[] buffer) {
-		int seekPtr = fte.seekPtr;
-		Inode iNode = fte.iNode;
-		int length = buffer.length;
+		int seekPtr, length;
+		Inode iNode;
+		if (fte == null) return ERROR;
+		seekPtr = fte.seekPtr;
+		iNode = fte.iNode;
+		length = buffer.length;
 		return ERROR;
 	}
 
 
-	public boolean delete(String args) {
-		return false;
+	public boolean delete(String fname) {
+		int iNumber;
+		if (fname == "") // if blank file name, return false
+			return false;
+		// get the iNumber for this filename
+		if ((iNumber = directory.namei(fname)) == -1)
+			return false; 	// if it does not exist, return false
+		// deallocate file, return success or failure
+		return directory.ifree(iNumber);
 	}
 
 	public int seek(FileTableEntry fte, int offset, int whence) {
-		int seekPtr;
-		// current seek pointer
-		int currSeekPtr = fte.seekPtr;
-		// end of file
-		int EOF = fsize(fte);
+		// seek pointer, current seek pointer, end of file
+		int seekPtr, currSeekPtr, EOF;
+		if (fte == null) return ERROR;
+		currSeekPtr = fte.seekPtr;
+		EOF = fsize(fte);
 		switch (whence) {
 			case SEEK_SET:
 				// file's seek pointer is set to offset bytes from the beginning of the file
@@ -140,7 +165,7 @@ public class FileSystem {
 		// if seek pointer is negative, clamp to 0
 		if (seekPtr < 0) seekPtr = 0;
 		// if seek pointer is greater than file size, clamp to end of file
-		else if (seekPtr < EOF) seekPtr = EOF;
+		else if (seekPtr > EOF) seekPtr = EOF;
 		
 		// set entry's seek pointer
 		fte.seekPtr = seekPtr;
@@ -151,16 +176,44 @@ public class FileSystem {
 
 	public boolean deallocateBlocks(FileTableEntry fte) {
 		Inode iNode;
+		byte[] data;
+		int block;
+		// return false if fte is null
 		if (fte == null) return false;
+		// return false if iNode is null
 		if ((iNode = fte.iNode) == null) return false;
-		for (int i = 0, inc = Disk.blockSize; i < iNode.length; i += inc) {
-			superblock.returnBlock(iNode.findTargetBlock(i));
+		// return false if iNode is being used
+		if (iNode.count > 1) return false;
+		
+		// deallocate direct blocks
+		/* increment index by block size until iNode's length is reached,
+		 * since length is a byte length. could have used iNode.direct.size
+		 * and incremented by 1 through the array, but this would defeat
+		 * the purpose of directSize being a private int-- so instead, we
+		 * use the built-in methods.
+		*/
+		for (int i = 0, l = iNode.length, inc = Disk.blockSize; i < l; i += inc) {
+			// skip unallocated block
+			if ((block = iNode.findTargetBlock(i)) == ERROR)
+				continue;
+			// deallocate block
+			superblock.returnBlock(block);
+			iNode.setTargetBlock(block, -1);
 		}
-		// TODO: could use iNode direct length but the directSize
-		// would have to be public-- so I'm not sure if I should do that.
-		// this method is incompleete. Need to check indirect and
-		// write back to disk
-		return false;
+		
+		// deallocate indirect blocks
+		if ((data = iNode.deleteIndexBlock()) != null) {
+			for (int i = 0, l = Disk.blockSize / 2; i < l; i += 2) {
+				// skip unallocated block
+				if ((block = SysLib.bytes2short(data, i)) == ERROR)
+					continue;
+				// deallocate block
+				superblock.returnBlock(block);
+			}
+		}
+		// write iNode to disk
+		iNode.toDisk(fte.iNumber);
+		return true;
 	}
 
 }
