@@ -6,7 +6,7 @@ import java.util.Vector;
  */
 
 public class Inode {
-	public static Vector<Inode> iNodeList; // maintains all iNode on memory
+	//public static Vector<Inode> iNodeList; // maintains all iNode on memory
 	private final static int iNodeSize = 32; // fix to 32 bytes
 	private final static int directSize = 11; // # direct pointers
 
@@ -35,7 +35,7 @@ public class Inode {
 			direct[i] = ERROR;
 		}
 		indirect = ERROR;
-		iNodeList.add(this);
+		//iNodeList.add(this);
 	}
 
 	// Inode constructor
@@ -62,7 +62,7 @@ public class Inode {
 
 		indirect = SysLib.bytes2short(data, offset);
 		offset += 2;
-		iNodeList.add(this);
+		//iNodeList.add(this);
 	}
 
 	public void toDisk(int iNumber) {

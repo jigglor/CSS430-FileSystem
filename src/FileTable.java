@@ -65,6 +65,8 @@ public class FileTable {
 
 
 	public synchronized boolean ffree(FileTableEntry fte) {
+		if (fte == null) return true; // if null, it's already free
+		
 		Inode iNode = fte.iNode;
 		short iNumber = fte.iNumber;
 		

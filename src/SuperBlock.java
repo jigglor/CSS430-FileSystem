@@ -84,7 +84,7 @@ public class SuperBlock {
 		SysLib.int2bytes(totalInodes, block, 4);
 		SysLib.int2bytes(totalInodes, block, 8);
 		SysLib.rawwrite(0, block);
-		SysLib.cout("ThreadOS: Superblock synchronized");
+		SysLib.cout("Superblock synchronized");
 	}
 	
 	/*getFreeBlock()

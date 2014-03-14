@@ -63,6 +63,7 @@ public class Kernel {
 	private final static String ERR_DW = "Disk write failed!?";
 	private final static String ERR_DS = "Disk sync failed!?";
 
+	// In case SysLib is modified / fails
 	private static void report(String err) {
 		System.out.println("ThreadOS: " + err);
 	}
