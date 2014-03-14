@@ -4,7 +4,7 @@
  */
 
 public class SuperBlock {
-	private final int defaultInodeBlocks = 64;
+	private final static int defaultInodeBlocks = 64;
 	public int totalBlocks; // default 1000
 	public int totalInodes; // default 64 (or 4 blocks including Inodes)
 	public int freeList; // default 5 (block#0 = super, blocks#1,2,3,4 = inodes)
@@ -47,7 +47,7 @@ public class SuperBlock {
 		
 		for (int i = 0; i < totalInodes; i++) {
 			Inode newInode = new Inode();
-			//TO ADD? Since Inode constructor already 
+			//TODO: ADD? Since Inode constructor already 
 			//implement flag as UNUSED, so no need?
 			//newInode.flag = newInode.UNUSED;
 			newInode.toDisk(i);
@@ -77,32 +77,37 @@ public class SuperBlock {
 	   in order to update the new specs in of the Superblock
 	*/
 	public void sync() {
-		byte[] SB = new byte[512];
-		SysLib.int2bytes(totalBlocks, SB, 0);
-		SysLib.int2bytes(totalInodes, SB, 4);
-		SysLib.int2bytes(totalInodes, SB, 8);
-		SysLib.rawwrite(0, SB);
-		SysLib.cerr("Superblock is now synchronized to Disk");
+		byte[] block = new byte[Disk.blockSize];
+		SysLib.int2bytes(totalBlocks, block, 0);
+		SysLib.int2bytes(totalInodes, block, 4);
+		SysLib.int2bytes(totalInodes, block, 8);
+		SysLib.rawwrite(0, block);
+		SysLib.cout("ThreadOS: Superblock synchronized");
 	}
 	
 	/*getFreeBlock()
 	// Dequeue the top block from the free list
 	*/
 	public int getFreeBlock() {
-		//create new empty block
-		byte[] block = new byte[Disk.blockSize];
-		for (int i = 0; i < Disk.blockSize; i++)
-			block[i] = 0;
+		int freeBlock;
+		byte[] block;
 		
+		// return -1 if there are no more free blocks
+		if (freeList < 0 || freeList > totalBlocks) return -1;
+		// free block is given from free list
+		freeBlock = freeList;
+		//create new empty block
+		block = new byte[Disk.blockSize];
 		//get the content of the freeList block
 		//wipe out the to block from the freeList
 		//with an empty block
 		SysLib.rawread(freeList, block);
-		freeList = SysLib.bytes2int(block, 0);
 		SysLib.int2bytes(0, block, 0);
-		SysLib.rawwrite(i, block);
+		SysLib.rawwrite(freeList, block);
 		
-		return freeList;
+		// free list becomes free block
+		freeList = SysLib.bytes2int(block, 0);
+		return freeBlock;
 	}
 	
 	/*returnBlock()
@@ -110,19 +115,18 @@ public class SuperBlock {
 	  Return true if the operation is successful
 	*/
 	public boolean returnBlock(int blockNumber) {
-		//if block is not a SuperBlock
-		if (blockNumber >= 0) {
-			byte[] block = new byte[512];
-			//translate the new block to the end of
-			// the freeList
-			SysLib.int2bytes(freeList, block, 0);
-			//write the content of the given block
-			//to the new block
-			SysLib.rawwrite(blockNumber, block);
-			//set the next freeList to the given block
-			freeList = blockNumber;
-			return true;
-		}
-	return false;
+		byte[] block;
+		// blockNumber cannot be superblock or out of range
+		if (blockNumber < 0 || blockNumber > totalBlocks) return false;
+		block = new byte[Disk.blockSize];
+		//translate the new block to the end of
+		// the freeList
+		SysLib.int2bytes(freeList, block, 0);
+		//write the content of the given block
+		//to the new block
+		SysLib.rawwrite(blockNumber, block);
+		//set the next freeList to the given block
+		freeList = blockNumber;
+		return true;
 	}
 }
