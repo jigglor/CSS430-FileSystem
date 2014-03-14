@@ -4,7 +4,7 @@
  */
 
 public class Directory {
-	private static int maxChars = 30; // max characters of each file name
+	private final static int maxChars = 30; // max characters of each file name
 
 	// Directory entries
 	private int fsizes[]; // each element stores a different file size (file name's length)
@@ -16,7 +16,7 @@ public class Directory {
 		fnames = new char[maxInumber][maxChars];
 		// initialize all file size to 0
 		while (--maxInumber > 0) fsizes[maxInumber] = 0;
-		fsizes[0] = 1; // fsize[0] is the size of "/".
+		fsizes[0] = root.length(); // fsize[0] is the size of "/".
 		
 		root.getChars(0, fsizes[0], fnames[0], 0); // fnames[0] includes "/"
 	}

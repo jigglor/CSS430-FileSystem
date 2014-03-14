@@ -5,9 +5,9 @@
 
 public class SuperBlock {
 	private final int defaultInodeBlocks = 64;
-	public int totalBlocks;
-	public int totalInodes;
-	public int freeList;
+	public int totalBlocks; // default 1000
+	public int totalInodes; // default 64 (or 4 blocks including Inodes)
+	public int freeList; // default 5 (block#0 = super, blocks#1,2,3,4 = inodes)
 
 	public SuperBlock(int diskSize) {
 		
@@ -23,12 +23,19 @@ public class SuperBlock {
 		if (totalBlocks == diskSize && totalInodes > 0 && freeList >= 2) {
 			return;
 		} else {
-			totalBlocks = diskSize;
 			format(defaultInodeBlocks);
 		}
 	}
 
 	private void format(int diskSize) {
+		int blocks = diskSize/16;
+		totalBlocks = diskSize;
+		Inode inode;
+		for (int i = 0; i < diskSize; i++) {
+			inode = new Inode();
+			inode.flag = Inode.UNUSED;
+			inode.toDisk(i);
+		}
 	}
 	
 	// write back totalBlocks, totalInodes, and freeList to disk

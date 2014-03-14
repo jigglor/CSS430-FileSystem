@@ -45,17 +45,44 @@ public class FileSystem {
 		return false;
 	}
 
-
-	public FileTableEntry open(String filename, String mode) {
+	//  The seek pointer is initialized to zero in the mode "r", "w", and "w+", whereas initialized at the end of the file in the mode "a".?
+	public FileTableEntry open (String filename, String mode) {
 		FileTableEntry fte = filetable.falloc(filename, mode);
-		if (deallocateBlocks(fte) == false)
-			return null;
+		int EOF = seek(fte, 0, SEEK_END); // end of file
+		int seekPtr = fte.seekPtr;
+		fte.count++;
+		switch (fte.mode) {
+			case FileTableEntry.READONLY:
+				break;
+			case FileTableEntry.WRITEONLY:
+				// delete all blocks
+				if (deallocateBlocks(fte) == false) {
+					SysLib.cerr("Could not deallocate all blocks.");
+					return null;
+				}
+				// write from scratch
+				break;
+			case FileTableEntry.READWRITE:
+				// keep all blocks
+				if (seekPtr < EOF) { // if seek pointer is within EOF
+					// corresponding bytes should be updated
+					break;
+				}
+				// if seek pinter is at EOF, it behaves like APPEND
+			case FileTableEntry.APPEND:
+				// keep all blocks
+				// set seek pointer to EOF
+				seekPtr = EOF;
+				// append new blocks
+				break;
+		}
 		return fte;
 	}
 
 
 	// Commits all file transactions on this file, and unregisters fd from the user file descriptor table of the calling thread's TCB. Returns success.
 	public boolean close(FileTableEntry fte) {
+		fte.count--;
 		return false;
 	}
 
@@ -65,14 +92,12 @@ public class FileSystem {
 	}
 
 	public int read(FileTableEntry fte, byte[] buffer) {
+		// start at position pointed to by inode's seek pointer
 		int seekPtr = fte.seekPtr;
 		Inode iNode = fte.iNode;
-		// start at position pointed to by inode's seek pointer
-		int startPos = iNode.findTargetBlock(seekPtr / Disk.blockSize);
 		int length = buffer.length;
 		// read up to buffer length
 		// if bytes remaining between seek pointer and the end of the file are less than buffer.length,
-		// SysLib.read 
 		return ERROR;
 
 	}
@@ -80,9 +105,7 @@ public class FileSystem {
 	public int write(FileTableEntry fte, byte[] buffer) {
 		int seekPtr = fte.seekPtr;
 		Inode iNode = fte.iNode;
-		int startPos = iNode.findTargetBlock(seekPtr / Disk.blockSize);
 		int length = buffer.length;
-		
 		return ERROR;
 	}
 
@@ -95,8 +118,8 @@ public class FileSystem {
 		int seekPtr;
 		// current seek pointer
 		int currSeekPtr = fte.seekPtr;
-		// greatest seek pointer value
-		int filesize = fsize(fte);
+		// end of file
+		int EOF = fsize(fte);
 		switch (whence) {
 			case SEEK_SET:
 				// file's seek pointer is set to offset bytes from the beginning of the file
@@ -108,7 +131,7 @@ public class FileSystem {
 				break;
 				// file's seek pointer is set to the size of the file plus the offset
 			case SEEK_END:
-				seekPtr = fsize(fte) + offset;
+				seekPtr = EOF + offset;
 				break;
 			default:
 				return ERROR;
@@ -117,7 +140,7 @@ public class FileSystem {
 		// if seek pointer is negative, clamp to 0
 		if (seekPtr < 0) seekPtr = 0;
 		// if seek pointer is greater than file size, clamp to end of file
-		else if (seekPtr < filesize) seekPtr = filesize;
+		else if (seekPtr < EOF) seekPtr = EOF;
 		
 		// set entry's seek pointer
 		fte.seekPtr = seekPtr;
@@ -127,9 +150,17 @@ public class FileSystem {
 	}
 
 	public boolean deallocateBlocks(FileTableEntry fte) {
-		
+		Inode iNode;
+		if (fte == null) return false;
+		if ((iNode = fte.iNode) == null) return false;
+		for (int i = 0, inc = Disk.blockSize; i < iNode.length; i += inc) {
+			superblock.returnBlock(iNode.findTargetBlock(i));
+		}
+		// TODO: could use iNode direct length but the directSize
+		// would have to be public-- so I'm not sure if I should do that.
+		// this method is incompleete. Need to check indirect and
+		// write back to disk
 		return false;
-
 	}
 
 }

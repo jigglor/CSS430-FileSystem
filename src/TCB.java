@@ -13,7 +13,7 @@ public class TCB {
 
 	// User file descriptor table
 	// each entry pointing to a file (structure) table entry
-	public FileTableEntry[] fte = null;
+	public FileTableEntry[] ftEnt = null;
 
 	public TCB(Thread newThread, int myTid, int parentTid) {
 		thread = newThread;
@@ -21,11 +21,11 @@ public class TCB {
 		pid = parentTid;
 		terminated = false;
 
-		fte = new FileTableEntry[32];
+		ftEnt = new FileTableEntry[32];
 		
 		//making sure the array is empty and pointing to null
 		for (int i = 0; i < 32; i++)
-			fte[i] = null;
+			ftEnt[i] = null;
 		// fd[0], [1], [2] are kept null for input, output, err
 
 		System.err.println("threadOS: a new thread (thread=" + thread + " tid="
@@ -45,8 +45,7 @@ public class TCB {
 	}
 
 	public synchronized boolean setTerminated() {
-		terminated = true;
-		return terminated;
+		return (terminated = true);
 	}
 
 	public synchronized boolean getTerminated() {
@@ -58,36 +57,25 @@ public class TCB {
 		if (entry == null)
 			return -1;
 		for (int i = 3; i < 32; i++) {
-			if (fte[i] == null) {
-				fte[i] = entry;
+			if (ftEnt[i] == null) {
+				ftEnt[i] = entry;
 				return i;
 			}
 		}
 		return -1;
 	}
 
-	/* returnFd
-	
-	*/
 	public synchronized FileTableEntry returnFd(int fd) {
 		//check for requested entry
-		if (fd >= 3 && fd < 32) {
-			//if found, return the FTE and set pointer to null
-			FileTableEntry oldEnt = fte[fd];
-			fte[fd] = null;
-			return oldEnt;
-		} else
-			return null;
+		if (fd < 3 || fd >= 32) return null;
+		//if found, return the FTE and set pointer to null
+		FileTableEntry oldEnt = ftEnt[fd];
+		ftEnt[fd] = null;
+		return oldEnt;
 	}
 
-	/*getFte
-	
-	*/
 	public synchronized FileTableEntry getFte(int fd) {
 		//get the FTE 
-		if (fd >= 3 && fd < 32)
-			return fte[fd];
-		else
-			return null;
+		return  fd >= 3 && fd < 32 ? ftEnt[fd] : null;
 	}
 }

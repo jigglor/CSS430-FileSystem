@@ -8,7 +8,7 @@ import java.util.*;
 
 public class SysLib {
 
-	//////////////////8 SysLib File System functions////////////////////
+	// ////////////////8 SysLib File System functions////////////////////
 
 	public static int format(int files) {
 		return Kernel.interrupt(Kernel.INTERRUPT_SOFTWARE, Kernel.FORMAT,
@@ -19,8 +19,8 @@ public class SysLib {
 		String[] args = new String[2];
 		args[0] = filename;
 		args[1] = mode;
-		return Kernel.interrupt(Kernel.INTERRUPT_SOFTWARE, Kernel.OPEN, 0,
-				args);
+		return Kernel
+				.interrupt(Kernel.INTERRUPT_SOFTWARE, Kernel.OPEN, 0, args);
 	}
 
 	public static int read(int fd, byte[] buffer) {
@@ -56,7 +56,7 @@ public class SysLib {
 				null);
 	}
 
-	//////////////////////////////////////////////////////////////////////
+	// ////////////////////////////////////////////////////////////////////
 
 	public static int exec(String args[]) {
 		return Kernel
@@ -79,8 +79,8 @@ public class SysLib {
 	}
 
 	public static int sleep(int ms) {
-		return Kernel.interrupt(Kernel.INTERRUPT_SOFTWARE, Kernel.SLEEP,
-				ms, null);
+		return Kernel.interrupt(Kernel.INTERRUPT_SOFTWARE, Kernel.SLEEP, ms,
+				null);
 	}
 
 	public static int disk() {

@@ -158,7 +158,7 @@ public class Kernel {
 									// prepare a read buffer
 									StringBuffer buf = (StringBuffer) args;
 
-									// append the keyboard intput to this read
+									// append the keyboard input to this read
 									// buffer
 									buf.append(s);
 
@@ -284,7 +284,7 @@ public class Kernel {
 			t = new Thread((Runnable) thrObj);
 			// add this thread into scheduler's circular list.
 			if ((newTcb = scheduler.addThread(t)) == null) return ERROR;
-			return (newTcb != null) ? newTcb.getTid() : ERROR;
+			return newTcb.getTid();
 		} catch (ClassNotFoundException e) {
 			report(e.toString());
 			return ERROR;
