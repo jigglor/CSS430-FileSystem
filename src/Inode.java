@@ -188,7 +188,7 @@ public class Inode {
 		
 		block = iNumber / Disk.blockSize;
 		
-		//to sat into one of the direct blocks
+		//to set into one of the direct blocks
 		if (block < directSize) {
 			//existed block
 			if (direct[block] >= 0)
@@ -197,7 +197,7 @@ public class Inode {
 			if ((block > 0) && (direct[block - 1] == -1))
 				return ERROR;
 			//else register the target block
-			direct[block] = (short) iNumber;
+			direct[block] = fBlock;
 			return OK;
 		}
 		//indirect blocks are unused
