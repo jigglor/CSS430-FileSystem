@@ -46,9 +46,10 @@ public class Inode {
 	public Inode(short iNumber) {
 		// read the corresponding disk block
 		int blockNumber = getOffset(iNumber);
-		byte[] block = new byte[Disk.blockSize];
-		SysLib.rawread(blockNumber, block);
 		int offset = (iNumber % 16) * iNodeSize;
+		byte[] block = new byte[Disk.blockSize];
+		
+		SysLib.rawread(blockNumber, block);
 
 		// locates the corresponding iNode information in that block
 		length = SysLib.bytes2int(block, offset);
@@ -72,13 +73,14 @@ public class Inode {
 	/*toDisk()
 	  save to disk as the i-th inode
 	*/
-	public void toDisk(int iNumber) {
+	public void toDisk(short iNumber) {
 		//initialize the Inode to be added back to Disk
-		byte[] newInode;
-		short offset;
+		byte[] newInode, data;
+		int offset, block;
 		if (iNumber < 0) return;
 		newInode = new byte[Disk.blockSize];
-		offset = (short) ((iNumber % 16) * iNodeSize);
+		offset = (iNumber % 16) * iNodeSize;
+		block = getOffset(iNumber);
 		SysLib.int2bytes(length, newInode, offset);
 		offset += 4;
 		SysLib.short2bytes(count, newInode, offset);
@@ -91,21 +93,20 @@ public class Inode {
 		}
 
 		SysLib.short2bytes(indirect, newInode, offset);
-		offset += 2;
+		/*offset += 2;
 		
 		//get the Disk block at the iNumber-th place
-		int diskOffset = getOffset(iNumber);
-		byte[] block = new byte[Disk.blockSize];
-		SysLib.rawread(diskOffset, block);
+		data = new byte[Disk.blockSize];
+		SysLib.rawread(block, data);
 		offset = (short) ((iNumber % 16) * iNodeSize);
 		
 		//put the iNode into the block
 		for (int i = 0; i < iNodeSize; i++) {
-			block[offset] = newInode[i];
+			data[offset] = newInode[i];
 			offset++;
 		}
-		//write back to Disk
-		SysLib.rawwrite(diskOffset, block);
+		//write back to Disk*/
+		SysLib.rawwrite(block, newInode);
 	}
 	
 	/*getOffset()

@@ -54,7 +54,7 @@ public class SuperBlock {
 		for (int i = 0; i < totalInodes; i++) {
 			// default flag is UNUSED
 			Inode newInode = new Inode();
-			newInode.toDisk(i);
+			newInode.toDisk((short) i);
 		}
 		
 		//set the free list depends on the number of Inodes
@@ -62,7 +62,7 @@ public class SuperBlock {
 		
 		freeList = iNodes / 16 + (iNodes % 16 == 0 ? 1 : 2);
 		
-		//create new free blocks and write it into Disk
+		//create new free blocks and write it into Disk		
 		for (int i = totalBlocks - 2; i >= freeList; i--) {
 			block = new byte[Disk.blockSize];
 			for (int j = 0; j < Disk.blockSize; j++) {
@@ -87,7 +87,7 @@ public class SuperBlock {
 		byte[] block = new byte[Disk.blockSize];
 		SysLib.int2bytes(totalBlocks, block, 0);
 		SysLib.int2bytes(totalInodes, block, 4);
-		SysLib.int2bytes(totalInodes, block, 8);
+		SysLib.int2bytes(freeList, block, 8);
 		SysLib.rawwrite(0, block);
 		Kernel.report("Superblock synchronized");
 	}
