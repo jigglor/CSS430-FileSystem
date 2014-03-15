@@ -11,10 +11,10 @@ public class FileTableEntry {
 	public final int mode; // "r", "w", "w+", or "a"
 	
 	// modes
-	public static final int READONLY = 0; // read only
-	public static final int WRITEONLY = 1; // write only
-	public static final int READWRITE = 2; // read and write
-	public static final int APPEND = 3; // append
+	public static final short READONLY = 0; // read only
+	public static final short WRITEONLY = 1; // write only
+	public static final short READWRITE = 2; // read and write
+	public static final short APPEND = 3; // append
 	
 	public FileTableEntry(Inode i, short inumber, String m) {
 		seekPtr = 0; // the seek pointer is set to the file top
@@ -22,23 +22,18 @@ public class FileTableEntry {
 		iNumber = inumber;
 		count = 1; // at least on thread is using this entry
 		mode = getMode(m); // once access mode is set, it never changes
+		iNode.count++; // update iNode count
 		if (mode == APPEND) // if mode is append
 			seekPtr = iNode.length; // seekPtr points to the end of file
 	}
 	
 
 	public static short getMode(String mode) {
-		switch (mode.toLowerCase()) {
-			case "r" :
-				return	READONLY;
-			case "w" :
-				return	WRITEONLY;
-			case "w+" :
-				return	READWRITE;
-			case "a" :
-				return	APPEND;
-			default :
-				return -1;
-		}
+		mode = mode.toLowerCase();
+		if (mode.compareTo("r") == 0) return READONLY;
+		if (mode.compareTo("w") == 0) return WRITEONLY;
+		if (mode.compareTo("w+") == 0) return READWRITE;
+		if (mode.compareTo("a") == 0) return APPEND;
+		return -1;
 	}
 }

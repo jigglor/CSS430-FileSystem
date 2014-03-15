@@ -36,7 +36,8 @@ public class FileTable {
 			}
 			iNode = new Inode(iNumber);
 			if (iNode.flag == Inode.DELETE) return null; // no more to open
-			if (iNode.flag == Inode.UNUSED || iNode.flag == Inode.USED)
+			if (iNode.flag == Inode.UNUSED ||
+				iNode.flag == Inode.USED)
 				break; 	// no need to wait for anything
 			// flags left include read and write
 			if (mode == FileTableEntry.READONLY && // mode is "r"
@@ -46,7 +47,6 @@ public class FileTable {
 				wait();
 			} catch (InterruptedException e) {}
 		}
-
 		// increment this iNode's count
 		iNode.count++;
 
@@ -75,6 +75,10 @@ public class FileTable {
 		
 		// decrement this iNode's count
 		if (iNode.count > 0) iNode.count--;
+		
+		// when no more FTEs point to iNode, flag = 0
+		if (iNode.count == 0)
+			iNode.flag = 0;
 		
 		// save the corresponding iNode to the disk
 		iNode.toDisk(iNumber);

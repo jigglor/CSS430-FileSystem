@@ -173,11 +173,9 @@ public class Inode {
 		data = new byte[Disk.blockSize];
 		SysLib.rawread(indirect, data);
 		
-		//get the target block in indirect block
-		//and return 
+		//get the target block in indirect block and return 
 		iBlock = block - directSize;
-		short loc = SysLib.bytes2short(data, iBlock * 2);
-		return loc;
+		return SysLib.bytes2short(data, iBlock * 2);
 	}
 	
 	/*setTargetBlock()
