@@ -302,7 +302,10 @@ public class FileSystem {
 		// deallocate file, return success or failure
 		return directory.ifree(iNumber);
 	}
-
+   
+   /*FileSystem seek()
+   
+   */
 	public int seek(FileTableEntry fte, int offset, int whence) {
 		// seek pointer, end of file
 		int seekPtr, EOF;
@@ -310,21 +313,31 @@ public class FileSystem {
 			return ERROR;
 		seekPtr = fte.seekPtr;
 		EOF = fsize(fte);
+      synchronized (fte) {
 		switch (whence) {
 			case SEEK_SET :
 				// file's seek pointer is set to offset bytes from the beginning
 				// of the file
-				seekPtr = offset;
+            if ((offset >= 0) && (offset <= fsize(fte))
+				   seekPtr = offset;
+            else 
+               return -1;
 				break;
 			case SEEK_CUR :
 				// file's seek pointer is set to its current value plus the
 				// offset
-				seekPtr += offset;
+            if ((seekPtr + offset >= 0) && (seekPtr + offset <= fsize(fte))
+				   seekPtr += offset;
+            else
+               return -1;
 				break;
 			// file's seek pointer is set to the size of the file plus the
 			// offset
 			case SEEK_END :
-				seekPtr = EOF + offset;
+            if ((seekPtr + offset >= 0) && (seekPtr + offset <= fsize(fte))
+				   seekPtr = EOF + offset;
+            else
+               return -1;
 				break;
 			default :
 				Kernel.report("Seek error: Whence " + whence
@@ -335,7 +348,8 @@ public class FileSystem {
 		// if seek pointer is negative, clamp to 0
 		if (seekPtr < 0)
 			seekPtr = 0;
-		// if seek pointer is greater than file size, clamp to end of file
+		// if seek pointer is greater than file size, 
+      // clamp to end of file
 		else if (seekPtr > EOF)
 			seekPtr = EOF;
 
@@ -344,6 +358,7 @@ public class FileSystem {
 
 		// return success
 		return seekPtr;
+      }
 	}
 
 	public boolean deallocateBlocks(FileTableEntry fte) {
