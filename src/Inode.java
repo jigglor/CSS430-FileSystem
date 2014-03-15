@@ -45,27 +45,32 @@ public class Inode {
 	*/
 	public Inode(short iNumber) {
 		// read the corresponding disk block
-		int blockNumber = getOffset(iNumber);
-		int offset = (iNumber % 16) * iNodeSize;
-		byte[] block = new byte[Disk.blockSize];
+		int block, offset;
+		byte[] data;
 		
-		SysLib.rawread(blockNumber, block);
+		if (iNumber < 0) return;
+
+		block = getOffset(iNumber);
+		offset = (iNumber % 16) * iNodeSize;
+		data = new byte[Disk.blockSize];
+		
+		SysLib.rawread(block, data);
 
 		// locates the corresponding iNode information in that block
-		length = SysLib.bytes2int(block, offset);
+		length = SysLib.bytes2int(data, offset);
 		offset += 4;
-		count = SysLib.bytes2short(block, offset);
+		count = SysLib.bytes2short(data, offset);
 		offset += 2;
-		flag = SysLib.bytes2short(block, offset);
+		flag = SysLib.bytes2short(data, offset);
 		offset += 2;
 
 		// initialize a new iNode with this information
 		for (int i = 0; i < directSize; i++) {
-			direct[i] = SysLib.bytes2short(block, offset);
+			direct[i] = SysLib.bytes2short(data, offset);
 			offset += 2;
 		}
 
-		indirect = SysLib.bytes2short(block, offset);
+		indirect = SysLib.bytes2short(data, offset);
 		offset += 2;
 		//iNodeList.add(this);
 	}
@@ -75,8 +80,8 @@ public class Inode {
 	*/
 	public void toDisk(short iNumber) {
 		//initialize the Inode to be added back to Disk
-		byte[] newInode, data;
 		int offset, block;
+		byte[] newInode, data;
 		if (iNumber < 0) return;
 		newInode = new byte[Disk.blockSize];
 		offset = (iNumber % 16) * iNodeSize;
@@ -113,6 +118,7 @@ public class Inode {
 	  return the current offset of the block
 	*/
 	public int getOffset(int iNumber) {
+		if (iNumber < 0) return ERROR;
 		return 1 + iNumber / 16;
 	}
 	
@@ -129,25 +135,22 @@ public class Inode {
 	  indirect block
 	*/
 	public boolean setIndexBlock(short iNumber) {
-		byte[] block;
-		
+		byte[] data;
+		if (iNumber < 0) return false;
 		// check if all 12 pointers are null
 		if (indirect != -1)
 			return false;
-		
 		for (int i = 0; i < directSize; i++)
 			if (direct[i] == -1)
 				return false;
-
 		// set indirect pointer to the first block index
 		indirect = iNumber;
 		
-		block = new byte[Disk.blockSize];
+		data = new byte[Disk.blockSize];
 		//set all indirect blocks to -1
 		for (int i = 0, l = Disk.blockSize/2; i < l; i += 2)
-			SysLib.short2bytes((short) -1, block, i);
-
-		SysLib.rawwrite(iNumber, block);
+			SysLib.short2bytes((short) -1, data, i);
+		SysLib.rawwrite(iNumber, data);
 		return true;
 	}
 	
@@ -155,70 +158,69 @@ public class Inode {
 	  find and return the location of the block
 	*/
 	public short findTargetBlock(int offset) {
-		byte[] block;
-		int i = offset / Disk.blockSize;  
+		int block, iBlock; // offset block, indirect offset
+		byte[] data;
+		block = offset / Disk.blockSize;  
 		
 		//target block is in one of the direct blocks
 		//return the block
-		if (i < 11)
-			return direct[i];
-			
+		if (block < directSize)
+			return direct[block];
 		//this block is not registered
 		if (indirect < 0)
 			return ERROR;
 			
-		block = new byte[Disk.blockSize];
-		SysLib.rawread(indirect, block);
+		data = new byte[Disk.blockSize];
+		SysLib.rawread(indirect, data);
 		
 		//get the target block in indirect block
 		//and return 
-		int indirectOffset = i - directSize;
-		return SysLib.bytes2short(block, indirectOffset * 2);
+		iBlock = block - directSize;
+		short loc = SysLib.bytes2short(data, iBlock * 2);
+		return loc;
 	}
 	
 	/*setTargetBlock()
 	  register the block into one of the direct or indirect blocks
 	*/
-	public int setTargetBlock(int iNumber, short freeBlock) {
-		byte[] block;
-		int i = iNumber / Disk.blockSize;
+	public int setTargetBlock(int iNumber, short fBlock) {
+		int block, iBlock; // iBlock is indirect block
+		byte[] data;
+		if (iNumber < 0) return ERROR;
+		
+		block = iNumber / Disk.blockSize;
 		
 		//to sat into one of the direct blocks
-		if (i < 11) {
-			
+		if (block < directSize) {
 			//existed block
-			if (direct[i] >= 0)
+			if (direct[block] >= 0)
 				return ERROR;
-			
 			//before is unused
-			if ((i > 0) && (direct[i - 1] == -1))
+			if ((block > 0) && (direct[block - 1] == -1))
 				return ERROR;
-			
 			//else register the target block
-			direct[i] = (short) iNumber;
+			direct[block] = (short) iNumber;
 			return OK;
 		}
-		
 		//indirect blocks are unused
 		if (indirect < 0)
 			return ERROR;
 			
-		block = new byte[Disk.blockSize];
-		SysLib.rawread(indirect, block);
-		int indirectOffset = i - iNodeSize;
+		data = new byte[Disk.blockSize];
+		SysLib.rawread(indirect, data);
+		//iBlock = block - iNodeSize;
+		iBlock = block - directSize;
 		
-		if (SysLib.bytes2short(block, indirectOffset * 2) > 0)	{
-			SysLib.cerr("indexBlock, indirectNo = " + i
+		if (SysLib.bytes2short(data, iBlock * 2) > 0)	{
+			SysLib.cerr("indexBlock, indirectNo = " + block
 			+ " contents = " + 
-			SysLib.bytes2short(block, indirectOffset * 2) + "\n");
-			
+			SysLib.bytes2short(data, iBlock * 2) + "\n");
 			return ERROR;
 		}
 		
 		//register the block into one of the indirect blocks
-		SysLib.short2bytes(freeBlock, block, indirectOffset * 2);
-		SysLib.rawwrite(indirect, block);
-		
+		SysLib.short2bytes(fBlock, data, iBlock * 2);
+		SysLib.rawwrite(indirect, data);
 		return OK;
 	}
 	
@@ -226,16 +228,16 @@ public class Inode {
 	  delete one of the registered block in indirect blocks
 	*/
 	public byte[] deleteIndexBlock() {
-		byte[] block;
+		byte[] data;
 		
 		// nothing to delete
 		if (indirect == ERROR) return null;
 		
-		block = new byte[Disk.blockSize];
-		SysLib.rawread(indirect, block);
+		data = new byte[Disk.blockSize];
+		SysLib.rawread(indirect, data);
 		
 		// indicate deletion
 		indirect = -1;
-		return block;
+		return data;
 	}
 }

@@ -113,44 +113,59 @@ public class FileSystem {
 	}
 
 	public int read(FileTableEntry fte, byte[] buffer) {
-		int seekPtr, length, EOF, block, start;
+		int seekPtr, length, block, offset, available, remaining, rLength, index;
 		Inode iNode;
 		byte[] data;
 		// file table entry cannot be null
 		if (fte == null) return ERROR;
-		// mode must be read only
-		if (fte.mode != FileTableEntry.READONLY) return ERROR;
+		// mode must be read
+		if (fte.mode == FileTableEntry.WRITEONLY ||
+			fte.mode == FileTableEntry.APPEND) return ERROR;
 		// iNode cannot be null
 		if ((iNode = fte.iNode) == null) return ERROR;
-		// start at position pointed to by inode's seek pointer
-		start = seekPtr = fte.seekPtr;
+		// start at position pointed to by iNode's seek pointer
+		seekPtr = fte.seekPtr;
 		// read up to buffer length
 		length = buffer.length;
-		// length must be less than the end of the file
-		if (length > (EOF = fsize(fte))) length = EOF;
 		// multiple threads cannot read at the same time
 		synchronized (fte) {
-			// TODO: check if iterator is sufficient
-			for (int i = 0; seekPtr < length; seekPtr += i) {
+			index = 0;
+			while (index < length) {
 				// block must exist
-				if ((block = iNode.findTargetBlock(seekPtr)) == ERROR)
+				if ((block = iNode.findTargetBlock(seekPtr)) == ERROR) {
+					Kernel.report("Read failure: Failed to find target block " + seekPtr + "\n");
 					return ERROR;
+				}
+				
+				// byte offset-- 0 is a new block
+				offset = seekPtr % Disk.blockSize;
+				// bytes available
+				available = Disk.blockSize - offset;
+				// bytes remaining
+				remaining = length - index;
+				// bytes to read-- cannot be greater than available
+				rLength = Math.min(available, remaining);
+				
 				data = new byte[Disk.blockSize];
-				// read block into data
+				
+				// read block from disk to data
 				SysLib.rawread(block, data);
-				// advance to next block data
-				i = seekPtr % Disk.blockSize;
+				
 				// copy data to buffer
-				System.arraycopy(data, fte.seekPtr % Disk.blockSize, buffer, seekPtr, i);
+				// source, source position, destination, destination position, length to copy
+				System.arraycopy(data, offset, buffer, seekPtr, rLength);
+				
+				index += rLength;
+				seekPtr += rLength;
 			}
 			// set new seek pointer
 			fte.seekPtr = seekPtr;
 		}
-		return seekPtr - start;
+		return length;
 	}
 
 	public int write(FileTableEntry fte, byte[] buffer) {
-		int seekPtr, length, EOF, start;
+		int seekPtr, length, offset, remaining, available, wLength, index;
 		short block;
 		Inode iNode;
 		byte[] data;
@@ -160,68 +175,82 @@ public class FileSystem {
 		if (fte.mode == FileTableEntry.READONLY) return ERROR;
 		// iNode cannot be null
 		if ((iNode = fte.iNode) == null) return ERROR;
+		// iNode must not be in use
+		if (iNode.flag == Inode.READ ||
+			iNode.flag == Inode.WRITE ||
+			iNode.flag == Inode.DELETE)
+			return ERROR;
 		// start at position pointed to by inode's seek pointer
-		start = seekPtr = fte.seekPtr;
+		seekPtr = fte.seekPtr;
 		// write up to buffer length
 		length = buffer.length;
-		// length must be less than the end of the file
-		//if (length > (EOF = fsize(fte))) length = EOF;
-		// multiple threads cannot read at the same time
+		// on error, set iNode flag to UNUSED because it's probably garbage now
 		synchronized (fte) {
-			// TODO: check if iterator is sufficient
-			Kernel.report("s" + seekPtr + ", " + length);
-			for (int i = 0; seekPtr < length; seekPtr += i) {
-				/* Attempted shorthand at ERROR checking below...
-				// if block does not exist
-				if ((block = iNode.findTargetBlock(seekPtr)) == ERROR &&
-						// try to get free block
-						((block = superblock.getFreeBlock()) == ERROR ||
-						// allocate free block
-						 iNode.setTargetBlock(seekPtr, block) == ERROR ||
-						 // try to allocate indirect block
-						 iNode.setIndexBlock(block) == false ||
-						 // try to get free block
-						 (block = superblock.getFreeBlock()) == ERROR ||
-						 // try to allocate free block
-						 iNode.setTargetBlock(seekPtr, block) == ERROR))
-					return ERROR; // return ERROR on any failure
-					*/
-				// if block does not exist...
+			// multiple threads cannot write at the same time
+			iNode.flag = Inode.WRITE; // set flag to write
+			index = 0;
+			while (index < length) {
+				// get next block from iNode
 				if ((block = iNode.findTargetBlock(seekPtr)) == ERROR) {
-					// ...we need to allocate one
-					if ((block = superblock.getFreeBlock()) == ERROR)
-						return ERROR; // out of memory
-					// try to allocate block
+					// if ERROR, file is out of memory, so get a new block
+					if ((block = superblock.getFreeBlock()) == ERROR) {
+						Kernel.report("Write failure: Out of memory!\n");
+						iNode.flag = Inode.UNUSED;
+						return ERROR; // no more free blocks
+					}
+					// read the file to the block
 					if (iNode.setTargetBlock(seekPtr, block) == ERROR) {
-						// failure. try to allocate indirect block
-						if (iNode.setIndexBlock(block) == false)
-							return ERROR; // could not allocate indirect block
-						// try to find a block again
-						if ((block = superblock.getFreeBlock()) == ERROR)
-							return ERROR; // nope. "I just can't do it captain!"
-						if (iNode.setTargetBlock(seekPtr, block) == ERROR)
-							return ERROR; // last allocation attempt failed
+						// out of bounds, try to get a new indirect block
+						if (iNode.setIndexBlock(block) == false) {
+							Kernel.report("Write failure: Failed to set index block " + block + "\n");
+							iNode.flag = Inode.UNUSED;
+							return ERROR;
+						}
+						// index block set, get a new block
+						if ((block = superblock.getFreeBlock()) == ERROR) {
+							Kernel.report("Write failure: Out of memory!\n");
+							iNode.flag = Inode.UNUSED;
+							return ERROR; // no more free blocks
+						}
+						if (iNode.setTargetBlock(seekPtr, block) == ERROR) {
+							Kernel.report("Write failure: Failed to set target block " + block + "\n");
+							iNode.flag = Inode.UNUSED;
+							return ERROR;
+						}
 					}
 				}
+				
+				// byte offset-- 0 is a new block
+				offset = seekPtr % Disk.blockSize;
+				// bytes available
+				available = Disk.blockSize - offset;
+				// bytes remaining
+				remaining = length - index;
+				// bytes to write-- cannot be greater than available
+				wLength = Math.min(available, remaining);
+				
 				data = new byte[Disk.blockSize];
+				
+				// read block from disk to data
 				SysLib.rawread(block, data);
-				// advance to next block data
-				i = seekPtr % Disk.blockSize;
+				
 				// copy data to buffer
-				System.arraycopy(data, fte.seekPtr % Disk.blockSize, buffer, seekPtr, i);
+				// source, source position, destination, destination position, length to copy
+				System.arraycopy(buffer, seekPtr, data, offset, wLength);
 				// write data to disk
 				SysLib.rawwrite(block, data);
 				
-				// ...
-				break;
+				index += wLength;
+				seekPtr += wLength;
 			}
 			// set new seek pointer
 			fte.seekPtr = seekPtr;
-			
 			// save iNode to disk
 			iNode.toDisk(fte.iNumber);
 		}
-		return seekPtr - start;
+		// if error was not returned, all bytes wrote successfully-- return length
+		// TODO: return successful amount of bytes instead of -1?
+		return length;
 	}
 
 
@@ -237,10 +266,10 @@ public class FileSystem {
 	}
 
 	public int seek(FileTableEntry fte, int offset, int whence) {
-		// seek pointer, current seek pointer, end of file
-		int seekPtr, currSeekPtr, EOF;
+		// seek pointer, end of file
+		int seekPtr, EOF;
 		if (fte == null) return ERROR;
-		currSeekPtr = fte.seekPtr;
+		seekPtr = fte.seekPtr;
 		EOF = fsize(fte);
 		switch (whence) {
 			case SEEK_SET:
@@ -249,14 +278,15 @@ public class FileSystem {
 				break;
 			case SEEK_CUR:
 				// file's seek pointer is set to its current value plus the offset
-				seekPtr = currSeekPtr + offset;
+				seekPtr += offset;
 				break;
 				// file's seek pointer is set to the size of the file plus the offset
 			case SEEK_END:
 				seekPtr = EOF + offset;
 				break;
 			default:
-				return ERROR;
+				Kernel.report("Seek error: Whence " + whence + " is unrecognized");
+				//return ERROR;
 		}
 		// clamp seek pointer to the size of the file
 		// if seek pointer is negative, clamp to 0
