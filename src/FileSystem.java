@@ -165,10 +165,11 @@ public class FileSystem {
 		// write up to buffer length
 		length = buffer.length;
 		// length must be less than the end of the file
-		if (length > (EOF = fsize(fte))) length = EOF;
+		//if (length > (EOF = fsize(fte))) length = EOF;
 		// multiple threads cannot read at the same time
 		synchronized (fte) {
 			// TODO: check if iterator is sufficient
+			Kernel.report("s" + seekPtr + ", " + length);
 			for (int i = 0; seekPtr < length; seekPtr += i) {
 				/* Attempted shorthand at ERROR checking below...
 				// if block does not exist
@@ -210,6 +211,9 @@ public class FileSystem {
 				System.arraycopy(data, fte.seekPtr % Disk.blockSize, buffer, seekPtr, i);
 				// write data to disk
 				SysLib.rawwrite(block, data);
+				
+				// ...
+				break;
 			}
 			// set new seek pointer
 			fte.seekPtr = seekPtr;
@@ -291,7 +295,7 @@ public class FileSystem {
 				continue;
 			// deallocate block
 			superblock.returnBlock(block);
-			iNode.setTargetBlock(block, -1);
+			iNode.setTargetBlock(block, (short) -1);
 		}
 		
 		// deallocate indirect blocks

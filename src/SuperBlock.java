@@ -34,43 +34,46 @@ public class SuperBlock {
 			freeList >= 2) {
 			return;
 		} else {
+			totalBlocks = diskSize;
 			format(defaultInodeBlocks);
 		}
 	}
 	
 	/*format()
 	  Redo the formatting of Inodes and Superblock by the given
-	  format number (inodeNo). For example, 32 will yield 2 blocks
+	  format number (iNodes). For example, 32 will yield 2 blocks
 	  of Inodes. 
 	*/
 	public void format(int iNodes) {
+		byte[] block = null;
+		
 		Kernel.report((iNodes == defaultInodeBlocks ? "default " : "") + "format( " + iNodes + " )");
 		
-		totalBlocks = Disk.blockSize;
 		totalInodes = iNodes;    
 		
 		for (int i = 0; i < totalInodes; i++) {
+			// default flag is UNUSED
 			Inode newInode = new Inode();
-			//TODO: ADD? Since Inode constructor already 
-			//implement flag as UNUSED, so no need?
-			//newInode.flag = newInode.UNUSED;
 			newInode.toDisk(i);
 		}
 		
 		//set the free list depends on the number of Inodes
 		//default 64 free list will points to 4
-		freeList = (totalInodes * 32 / Disk.blockSize);
+		
+		freeList = iNodes / 16 + (iNodes % 16 == 0 ? 1 : 2);
 		
 		//create new free blocks and write it into Disk
-		for (int j = freeList; j < totalBlocks; j++) {
-			byte[] block = new byte[Disk.blockSize];
-			
-			for (int i = 0; i < Disk.blockSize; i++)
-				block[i] = 0;
-				
-			SysLib.int2bytes(j + 1, block, 0);
-			SysLib.rawwrite(j, block);
+		for (int i = totalBlocks - 2; i >= freeList; i--) {
+			block = new byte[Disk.blockSize];
+			for (int j = 0; j < Disk.blockSize; j++) {
+				block[j] = (byte) 0;
+			}
+			SysLib.int2bytes(i + 1, block, 0);
+			SysLib.rawwrite(i, block);
 		}
+		// last block has null pointer
+		SysLib.int2bytes(-1, block, 0);
+		SysLib.rawwrite(totalBlocks - 1, block);
 		//finalized and sync SuperBlock info to Disk
 		//with everything formatted 
 		sync();
