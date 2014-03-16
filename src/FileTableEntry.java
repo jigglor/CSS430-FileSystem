@@ -9,13 +9,13 @@ public class FileTableEntry {
 	public final short iNumber; // this iNode number
 	public int count; // # threads sharing this entry
 	public final int mode; // "r", "w", "w+", or "a"
-	
+
 	// modes
 	public static final short READONLY = 0; // read only
 	public static final short WRITEONLY = 1; // write only
 	public static final short READWRITE = 2; // read and write
 	public static final short APPEND = 3; // append
-	
+
 	public FileTableEntry(Inode i, short inumber, String m) {
 		seekPtr = 0; // the seek pointer is set to the file top
 		iNode = i;
@@ -26,14 +26,17 @@ public class FileTableEntry {
 		if (mode == APPEND) // if mode is append
 			seekPtr = iNode.length; // seekPtr points to the end of file
 	}
-	
 
 	public static short getMode(String mode) {
 		mode = mode.toLowerCase();
-		if (mode.compareTo("r") == 0) return READONLY;
-		if (mode.compareTo("w") == 0) return WRITEONLY;
-		if (mode.compareTo("w+") == 0) return READWRITE;
-		if (mode.compareTo("a") == 0) return APPEND;
+		if (mode.compareTo("r") == 0)
+			return READONLY;
+		if (mode.compareTo("w") == 0)
+			return WRITEONLY;
+		if (mode.compareTo("w+") == 0)
+			return READWRITE;
+		if (mode.compareTo("a") == 0)
+			return APPEND;
 		return -1;
 	}
 }

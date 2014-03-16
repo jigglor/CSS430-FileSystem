@@ -18,56 +18,64 @@ class Test5 extends Thread {
 	}
 
 	public void run() {
-		double _test01 = test1() ? 2.0 : 0;  // format with specified # of files
-		double _test02 = test2() ? 2.0 : 0;  // open "css430" with "w+"
-		double _test03 = test3() ? 2.0 : 0;  // write buf[16]
-		double _test04 = test4() ? 2.0 : 0;  // close fd
-		double _test05 = test5() ? 2.0 : 0;  // read buf[16] from "css430"
-		double _test06 = test6() ? 1.0 : 0;  // append buf[32] to "css430"
-		double _test07 = test7() ? 1.0 : 0;  // seek and read from "css430"
-		double _test08 = test8() ? 0.5 : 0;  // open "css430" with "w+"
-		test9();							 // open "bothell" with "w+"
+		double _test01 = test1() ? 2.0 : 0; // format with specified # of files
+		double _test02 = test2() ? 2.0 : 0; // open "css430" with "w+"
+		double _test03 = test3() ? 2.0 : 0; // write buf[16]
+		double _test04 = test4() ? 2.0 : 0; // close fd
+		double _test05 = test5() ? 2.0 : 0; // read buf[16] from "css430"
+		double _test06 = test6() ? 1.0 : 0; // append buf[32] to "css430"
+		double _test07 = test7() ? 1.0 : 0; // seek and read from "css430"
+		double _test08 = test8() ? 0.5 : 0; // open "css430" with "w+"
+		test9(); // open "bothell" with "w+"
 		double _test10 = test10() ? 0.5 : 0; // write buf[512 * 13]
-		test11();							 // close fd
-		double _test12 = test12() ? 0.5 : 0; // read buf[512 * 13] from "bothell"
+		test11(); // close fd
+		double _test12 = test12() ? 0.5 : 0; // read buf[512 * 13] from
+												// "bothell"
 		double _test13 = test13() ? 0.5 : 0; // append buf[32] to "bothell"
 		double _test14 = test14() ? 0.5 : 0; // seek and read from "bothell"
 		double _test15 = test15() ? 0.5 : 0; // open "bothell" with "w+"
 		double _test16 = test16() ? 0.5 : 0; // delete "css430"
-		double _test17 = test17() ? 0.5 : 0; // create "uwb0" - "uwb45" of buf[512 * 13]
-		double _test18 = test18() ? 0.5 : 0; // "uwb1" read/written among Test5 and Test6
-		SysLib.cout("01: Correct behavior of format......................" + _test01 + "/2.0\n");
-		SysLib.cout("02: Correct behavior of open........................" + _test02 + "/2.0\n");
-		SysLib.cout("03: Correct behavior of writing a few bytes........." + _test03 + "/2.0\n");
-		SysLib.cout("04: Correct behavior of close......................." + _test04 + "/2.0\n");
-		SysLib.cout("05: Correct behavior of reading a few bytes........." + _test05 + "/2.0\n");
-		SysLib.cout("06: Correct behavior of appending a few bytes......." + _test06 + "/1.0\n");
-		SysLib.cout("07: Correct behavior of seeking in a small file....." + _test07 + "/1.0\n");
-		SysLib.cout("08: Correct behavior of read/writing a small file..." + _test08 + "/0.5\n");
-		SysLib.cout("10: Correct behavior of writing a lot of bytes......" + _test10 + "/0.5\n");
-		SysLib.cout("12: Correct behavior of reading a lot of bytes......" + _test12 + "/0.5\n");
-		SysLib.cout("13: Correct behavior of appending to a large file..." + _test13 + "/0.5\n");
-		SysLib.cout("14: Correct behavior of seeking in a large file....." + _test14 + "/0.5\n");
-		SysLib.cout("15: Correct behavior of read/writing a large file..." + _test15 + "/0.5\n");
-		SysLib.cout("16: Correct behavior of delete......................" + _test16 + "/0.5\n");
-		SysLib.cout("17: Correct behavior of creating over 40 files ....." + _test17 + "/0.5\n");
-		SysLib.cout("18: Correct behavior of two fds to the same file...." + _test18 + "/0.5\n");
-		SysLib.cout("Total Score: " + (_test01 +
-									   _test02 +
-									   _test03 +
-									   _test04 +
-									   _test05 +
-									   _test06 +
-									   _test07 +
-									   _test08 +
-									   _test10 +
-									   _test12 +
-									   _test13 +
-									   _test14 +
-									   _test15 +
-									   _test16 +
-									   _test17 +
-									   _test18) + "/16.5\n");
+		double _test17 = test17() ? 0.5 : 0; // create "uwb0" - "uwb45" of
+												// buf[512 * 13]
+		double _test18 = test18() ? 0.5 : 0; // "uwb1" read/written among Test5
+												// and Test6
+		SysLib.cout("01: Correct behavior of format......................"
+				+ _test01 + "/2.0\n");
+		SysLib.cout("02: Correct behavior of open........................"
+				+ _test02 + "/2.0\n");
+		SysLib.cout("03: Correct behavior of writing a few bytes........."
+				+ _test03 + "/2.0\n");
+		SysLib.cout("04: Correct behavior of close......................."
+				+ _test04 + "/2.0\n");
+		SysLib.cout("05: Correct behavior of reading a few bytes........."
+				+ _test05 + "/2.0\n");
+		SysLib.cout("06: Correct behavior of appending a few bytes......."
+				+ _test06 + "/1.0\n");
+		SysLib.cout("07: Correct behavior of seeking in a small file....."
+				+ _test07 + "/1.0\n");
+		SysLib.cout("08: Correct behavior of read/writing a small file..."
+				+ _test08 + "/0.5\n");
+		SysLib.cout("10: Correct behavior of writing a lot of bytes......"
+				+ _test10 + "/0.5\n");
+		SysLib.cout("12: Correct behavior of reading a lot of bytes......"
+				+ _test12 + "/0.5\n");
+		SysLib.cout("13: Correct behavior of appending to a large file..."
+				+ _test13 + "/0.5\n");
+		SysLib.cout("14: Correct behavior of seeking in a large file....."
+				+ _test14 + "/0.5\n");
+		SysLib.cout("15: Correct behavior of read/writing a large file..."
+				+ _test15 + "/0.5\n");
+		SysLib.cout("16: Correct behavior of delete......................"
+				+ _test16 + "/0.5\n");
+		SysLib.cout("17: Correct behavior of creating over 40 files ....."
+				+ _test17 + "/0.5\n");
+		SysLib.cout("18: Correct behavior of two fds to the same file...."
+				+ _test18 + "/0.5\n");
+		SysLib.cout("Total Score: "
+				+ (_test01 + _test02 + _test03 + _test04 + _test05 + _test06
+						+ _test07 + _test08 + _test10 + _test12 + _test13
+						+ _test14 + _test15 + _test16 + _test17 + _test18)
+				+ "/16.5\n");
 		SysLib.exit();
 	}
 
@@ -263,7 +271,8 @@ class Test5 extends Thread {
 		}
 		byte[] tmpBuf = new byte[2];
 		size = SysLib.read(fd, tmpBuf);
-		SysLib.cout("\n7: (seek(fd,10,0) contents = " + tmpBuf[0] + ") == (byte) 10 ");
+		SysLib.cout("\n7: (seek(fd,10,0) contents = " + tmpBuf[0]
+				+ ") == (byte) 10 ");
 		if (tmpBuf[0] != (byte) 10) {
 			SysLib.cout("(bad)");
 		} else {
@@ -280,7 +289,8 @@ class Test5 extends Thread {
 			success++;
 		}
 		size = SysLib.read(fd, tmpBuf);
-		SysLib.cout("\n7: (seek(fd,10,1) contents = " + tmpBuf[0] + ") == (byte) 20 ");
+		SysLib.cout("\n7: (seek(fd,10,1) contents = " + tmpBuf[0]
+				+ ") == (byte) 20 ");
 		if (tmpBuf[0] != (byte) 20) {
 			SysLib.cout("(bad)");
 		} else {
@@ -296,7 +306,8 @@ class Test5 extends Thread {
 			success++;
 		}
 		size = SysLib.read(fd, tmpBuf);
-		SysLib.cout("\n7: (seek(fd,-2,2) contents = " + tmpBuf[0] + ") == (byte) 46 ");
+		SysLib.cout("\n7: (seek(fd,-2,2) contents = " + tmpBuf[0]
+				+ ") == (byte) 46 ");
 		if (tmpBuf[0] != (byte) 46) {
 			SysLib.cout("(bad)");
 		} else {
@@ -524,7 +535,8 @@ class Test5 extends Thread {
 		SysLib.cout("14: seek and read from \"bothell\"...\n");
 		fd = SysLib.open("bothell", "r");
 		int position = SysLib.seek(fd, 512 * 11, 0);
-		SysLib.cout("14: (seek(fd,512 * 11,0) = " + position + ") == 512 * 11 == 5632 ");
+		SysLib.cout("14: (seek(fd,512 * 11,0) = " + position
+				+ ") == 512 * 11 == 5632 ");
 		if (position != 512 * 11) {
 			SysLib.cout("(bad)");
 		} else {
@@ -533,7 +545,8 @@ class Test5 extends Thread {
 		}
 		byte[] tmpBuf = new byte[2];
 		size = SysLib.read(fd, tmpBuf);
-		SysLib.cout("\n14: (seek(fd,512*11,0) contents = " + tmpBuf[0] + ") == (byte) 5632 ");
+		SysLib.cout("\n14: (seek(fd,512*11,0) contents = " + tmpBuf[0]
+				+ ") == (byte) 5632 ");
 		if (tmpBuf[0] != (byte) (512 * 11)) {
 			SysLib.cout("(bad)");
 		} else {
@@ -542,7 +555,8 @@ class Test5 extends Thread {
 		}
 		position = SysLib.seek(fd, 512 * 11, 0);
 		position = SysLib.seek(fd, 512, 1);
-		SysLib.cout("\n14: (seek(fd,512,1) = " + position + ") == 512 * 12 == 6144 ");
+		SysLib.cout("\n14: (seek(fd,512,1) = " + position
+				+ ") == 512 * 12 == 6144 ");
 		if (position != 512 * 12) {
 			SysLib.cout("(bad)");
 		} else {
@@ -550,7 +564,8 @@ class Test5 extends Thread {
 			success++;
 		}
 		size = SysLib.read(fd, tmpBuf);
-		SysLib.cout("\n14: (seek(fd,512,1) contents = " + tmpBuf[0] + ") == (byte) 6144 ");
+		SysLib.cout("\n14: (seek(fd,512,1) contents = " + tmpBuf[0]
+				+ ") == (byte) 6144 ");
 		if (tmpBuf[0] != (byte) (512 * 12)) {
 			SysLib.cout("(bad)");
 		} else {
@@ -558,7 +573,8 @@ class Test5 extends Thread {
 			success++;
 		}
 		position = SysLib.seek(fd, -2, 2);
-		SysLib.cout("\n14: (seek(fd,-2,2) = " + position + ") == 512 * 13 + 32 - 2 == 6686 ");
+		SysLib.cout("\n14: (seek(fd,-2,2) = " + position
+				+ ") == 512 * 13 + 32 - 2 == 6686 ");
 		if (position != 512 * 13 + 32 - 2) {
 			SysLib.cout("(bad)");
 		} else {
@@ -566,7 +582,8 @@ class Test5 extends Thread {
 			success++;
 		}
 		size = SysLib.read(fd, tmpBuf);
-		SysLib.cout("\n14: (seek(fd,-2,2) contents = " + tmpBuf[0] + ") == (byte) 46 ");
+		SysLib.cout("\n14: (seek(fd,-2,2) contents = " + tmpBuf[0]
+				+ ") == (byte) 46 ");
 		if (tmpBuf[0] != (byte) 46) {
 			SysLib.cout("(bad)");
 		} else {
@@ -718,11 +735,13 @@ class Test5 extends Thread {
 			success++;
 		}
 		pass = true;
-		SysLib.cout("\n17: SysLib.write(fdes[x], buf6656) == 6656, x = 0..." + lastOpen + " ");
+		SysLib.cout("\n17: SysLib.write(fdes[x], buf6656) == 6656, x = 0..."
+				+ lastOpen + " ");
 		for (int i = 0; i < lastOpen; i++) {
 			if (SysLib.write(fdes[i], buf6656) != 6656) {
 				pass = false;
-				SysLib.cout("SysLib.write(fdes[" + i + "], buf6656) write failed");
+				SysLib.cout("SysLib.write(fdes[" + i
+						+ "], buf6656) write failed");
 				break;
 			}
 		}
@@ -733,7 +752,8 @@ class Test5 extends Thread {
 			success++;
 		}
 		pass = true;
-		SysLib.cout("\n17: SysLib.close(fdes[x]) > -1, x = 0..." + lastOpen + " ");
+		SysLib.cout("\n17: SysLib.close(fdes[x]) > -1, x = 0..." + lastOpen
+				+ " ");
 		for (int i = 0; i < lastOpen; i++) {
 			if (SysLib.close(fdes[i]) == -1) {
 				pass = false;

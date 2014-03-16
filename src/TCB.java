@@ -22,14 +22,14 @@ public class TCB {
 		terminated = false;
 
 		ftEnt = new FileTableEntry[32];
-		
-		//making sure the array is empty and pointing to null
+
+		// making sure the array is empty and pointing to null
 		for (int i = 0; i < 32; i++)
 			ftEnt[i] = null;
 		// fd[0], [1], [2] are kept null for input, output, err
 
-		Kernel.report("a new thread (thread=" + thread + " tid=" + tid + " pid="
-				+ pid + ")");
+		Kernel.report("a new thread (thread=" + thread + " tid=" + tid
+				+ " pid=" + pid + ")");
 	}
 
 	public synchronized Thread getThread() {
@@ -66,16 +66,17 @@ public class TCB {
 	}
 
 	public synchronized FileTableEntry returnFd(int fd) {
-		//check for requested entry
-		if (fd < 3 || fd >= 32) return null;
-		//if found, return the FTE and set pointer to null
+		// check for requested entry
+		if (fd < 3 || fd >= 32)
+			return null;
+		// if found, return the FTE and set pointer to null
 		FileTableEntry oldEnt = ftEnt[fd];
 		ftEnt[fd] = null;
 		return oldEnt;
 	}
 
 	public synchronized FileTableEntry getFte(int fd) {
-		//get the FTE 
-		return  fd >= 3 && fd < 32 ? ftEnt[fd] : null;
+		// get the FTE
+		return fd >= 3 && fd < 32 ? ftEnt[fd] : null;
 	}
 }

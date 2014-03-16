@@ -286,7 +286,8 @@ public class Kernel {
 			// instantiate a new thread of this object
 			t = new Thread((Runnable) thrObj);
 			// add this thread into scheduler's circular list.
-			if ((newTcb = scheduler.addThread(t)) == null) return ERROR;
+			if ((newTcb = scheduler.addThread(t)) == null)
+				return ERROR;
 			return newTcb.getTid();
 		} catch (ClassNotFoundException e) {
 			report(e.toString());

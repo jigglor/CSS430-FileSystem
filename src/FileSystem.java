@@ -48,7 +48,7 @@ public class FileSystem {
 		// file table contents must be closed
 		if (!filetable.fempty()) {
 			// TODO: omit or wait with while loop if this causes errors
-			Kernel.report("Format failure: Cannot format superblock while file are in use\n");
+			Kernel.report("Format failure: Cannot format superblock while file are in use");
 			return false;
 		}
 		superblock.format(files);
@@ -78,7 +78,7 @@ public class FileSystem {
 					!deallocateBlocks(fte)) {
 				// on failure, relieve entry from memory
 				filetable.ffree(fte);
-				Kernel.report("Open failure: Could not deallocate all blocks\n");
+				Kernel.report("Open failure: Could not deallocate all blocks");
 				return null;
 			}
 		}
@@ -93,11 +93,22 @@ public class FileSystem {
 
 		if (fte == null)
 			return false;
-		if ((iNode = fte.iNode) == null)
-			return false;
 
-		iNode.toDisk(fte.iNumber);
-		return filetable.ffree(fte);
+		synchronized (fte) {
+			if ((iNode = fte.iNode) == null)
+				return false;
+			if (iNode.flag == Inode.DELETE && fte.count == 0) {
+				// deallocate file table entry if no more threads are using the
+				// file and it has been marked as deleted (could be due to a bad
+				// write)
+				deallocateBlocks(fte);
+				if (!directory.ifree(fte.iNumber))
+					return false;
+			}
+			if (!filetable.ffree(fte))
+				return false;
+		}
+		return true;
 	}
 
 	// return size in bytes
@@ -129,7 +140,7 @@ public class FileSystem {
 			return ERROR;
 		// read up to buffer length
 		length = buffer.length;
-		
+
 		// multiple threads cannot read at the same time
 		synchronized (fte) {
 			// start at position pointed to by iNode's seek pointer
@@ -182,13 +193,13 @@ public class FileSystem {
 		return index;
 	}
 
-	/* TODO: corresponding bytes should be updated... hmmm ?
-	 * "w" should actually delete all blocks first and then start writing from
-	 * scratch. Contrary to "w", the "a" mode should keep all blocks, set the
-	 * seek pointer to the EOF, and thereafter appends new blocks. "w+" should
-	 * keep all blocks. If the seek pointer is within the EOF, the corresponding
-	 * bytes should be updated. If the seek pointer is at the EOF, it behaves
-	 * like "a".
+	/*
+	 * TODO: corresponding bytes should be updated... hmmm ? "w" should actually
+	 * delete all blocks first and then start writing from scratch. Contrary to
+	 * "w", the "a" mode should keep all blocks, set the seek pointer to the
+	 * EOF, and thereafter appends new blocks. "w+" should keep all blocks. If
+	 * the seek pointer is within the EOF, the corresponding bytes should be
+	 * updated. If the seek pointer is at the EOF, it behaves like "a".
 	 */
 
 	public int write(FileTableEntry fte, byte[] buffer) {
@@ -211,20 +222,20 @@ public class FileSystem {
 			return ERROR;
 		// write up to buffer length
 		length = buffer.length;
-		// on error, set iNode flag to "to be deleted" because it's probably garbage now
+		// on error, set iNode flag to "to be deleted" because it's probably
+		// garbage now
 		// multiple threads cannot write at the same time
 		synchronized (fte) {
 			// start at position pointed to by inode's seek pointer
 			// append should set seek pointer to EOF
-			if (fte.mode == FileTableEntry.APPEND) {
-				seek(fte, 0, SEEK_END);
-			}
-			seekPtr = fte.seekPtr;
+			seekPtr = fte.mode == FileTableEntry.APPEND
+					? seek(fte, 0, SEEK_END)
+					: fte.seekPtr;
 			iNode.flag = Inode.WRITE; // set flag to write
 			index = 0;
 			data = new byte[Disk.blockSize];
 			while (index < length) {
-				
+
 				// byte offset-- 0 is a new block
 				offset = seekPtr % Disk.blockSize;
 				// bytes available
@@ -233,8 +244,7 @@ public class FileSystem {
 				remaining = length - index;
 				// bytes to write-- cannot be greater than available
 				wLength = Math.min(available, remaining);
-				
-				
+
 				// get next block from iNode
 				if ((block = iNode.findTargetBlock(offset)) == ERROR) {
 					// if ERROR, file is out of memory, so get a new block
@@ -242,7 +252,7 @@ public class FileSystem {
 						Kernel.report("Write failure: Out of memory!");
 						iNode.flag = Inode.DELETE;
 						break;
-						//return ERROR; // no more free blocks
+						// return ERROR; // no more free blocks
 					}
 					// read the file to the block
 					if (iNode.setTargetBlock(seekPtr, block) == ERROR) {
@@ -252,27 +262,28 @@ public class FileSystem {
 									+ block);
 							iNode.flag = Inode.DELETE;
 							break;
-							//return ERROR;
+							// return ERROR;
 						}
 						// index block set, get a new block
 						if ((block = superblock.getFreeBlock()) == ERROR) {
 							Kernel.report("Write failure: Out of memory!");
 							iNode.flag = Inode.DELETE;
 							break;
-							//return ERROR; // no more free blocks
+							// return ERROR; // no more free blocks
 						}
 						if (iNode.setTargetBlock(seekPtr, block) == ERROR) {
 							Kernel.report("Write failure: Failed to set target block "
 									+ block);
 							iNode.flag = Inode.DELETE;
 							break;
-							//return ERROR;
+							// return ERROR;
 						}
 					}
 				}
-				
+
 				if (block >= superblock.totalBlocks) {
-					Kernel.report("Write failure: Block" + block + " out of range");
+					Kernel.report("Write failure: Block" + block
+							+ " out of range");
 					iNode.flag = Inode.DELETE;
 					break;
 				}
@@ -280,7 +291,7 @@ public class FileSystem {
 				if (offset == 0) {
 					data = new byte[Disk.blockSize];
 				}
-	
+
 				SysLib.rawread(block, data);
 
 				// copy data to buffer
@@ -288,7 +299,7 @@ public class FileSystem {
 				// length to copy
 				System.arraycopy(buffer, index, data, offset, wLength);
 				// write data to disk
-				
+
 				SysLib.rawwrite(block, data);
 
 				index += wLength;
@@ -321,10 +332,10 @@ public class FileSystem {
 		// deallocate file, return success or failure
 		return directory.ifree(iNumber);
 	}
-   
-   /*FileSystem seek()
-   
-   */
+
+	/*
+	 * FileSystem seek()
+	 */
 	public int seek(FileTableEntry fte, int offset, int whence) {
 		// seek pointer, end of file
 		int seekPtr, EOF;
@@ -335,33 +346,37 @@ public class FileSystem {
 			EOF = fsize(fte);
 			switch (whence) {
 				case SEEK_SET :
-					// file's seek pointer is set to offset bytes from the beginning of the file
-					   seekPtr = offset;
+					// file's seek pointer is set to offset bytes from the
+					// beginning of the file
+					seekPtr = offset;
 					break;
 				case SEEK_CUR :
-					// file's seek pointer is set to its current value plus the offset
-					   seekPtr += offset;
+					// file's seek pointer is set to its current value plus the
+					// offset
+					seekPtr += offset;
 					break;
-				// file's seek pointer is set to the size of the file plus the offset
+				// file's seek pointer is set to the size of the file plus the
+				// offset
 				case SEEK_END :
-					   seekPtr = EOF + offset;
+					seekPtr = EOF + offset;
 					break;
 				default :
-					Kernel.report("Seek error: Whence " + whence + " is unrecognized");
+					Kernel.report("Seek error: Whence " + whence
+							+ " is unrecognized");
 					// return ERROR;
 			}
 			// clamp seek pointer to the size of the file
 			// if seek pointer is negative, clamp to 0
 			if (seekPtr < 0)
 				seekPtr = 0;
-			// if seek pointer is greater than file size, 
+			// if seek pointer is greater than file size,
 			// clamp to end of file
 			else if (seekPtr > EOF)
 				seekPtr = EOF;
-	
+
 			// set entry's seek pointer
 			fte.seekPtr = seekPtr;
-	
+
 			// return OK;
 		}
 		return seekPtr;
