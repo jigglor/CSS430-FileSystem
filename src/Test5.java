@@ -318,7 +318,7 @@ class Test5 extends Thread {
 		SysLib.write(fd, buf24);
 		SysLib.seek(fd, 0, 0);
 		byte[] tmpBuf = new byte[48];
-		SysLib.read(fd, tmpBuf);
+		size = SysLib.read(fd, tmpBuf);
 		SysLib.cout("8: tmpBuf[x] == buf16[x], x = 0...15 ");
 		boolean pass = true;
 		if (size > 15) {
@@ -589,8 +589,8 @@ class Test5 extends Thread {
 		SysLib.write(fd, buf24);
 		SysLib.seek(fd, 0, 0);
 		byte[] tmpBuf = new byte[6688];
-		SysLib.read(fd, tmpBuf);
-		SysLib.cout("\n15: tmpBuf[x] == buf6656[x], x = 0...6140 ");
+		size = SysLib.read(fd, tmpBuf);
+		SysLib.cout("15: tmpBuf[x] == buf6656[x], x = 0...6140 ");
 		boolean pass = true;
 		if (size > 6139) {
 			for (int i = 0; i < 512 * 12 - 3; i++) {
